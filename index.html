@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Construye el Diagrama Jerárquico del Reporte</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@300;400;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 3em;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+            text-shadow: 4px 4px 0 #c00, 8px 8px 20px rgba(204, 0, 0, 0.5);
+        }
+
+        .subtitle {
+            color: #ff6b6b;
+            font-size: 1.1em;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .student-info {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(204, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .student-info h3 {
+            color: #c00;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .student-info h3::before {
+            content: '👤';
+            font-size: 1.2em;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .info-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .info-field label {
+            color: #ff6b6b;
+            font-size: 0.9em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .info-field input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(204, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .info-field input:focus {
+            outline: none;
+            border-color: #c00;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 20px rgba(204, 0, 0, 0.3);
+        }
+
+        .instructions {
+            background: linear-gradient(135deg, #c00 0%, #a00 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(204, 0, 0, 0.4);
+        }
+
+        .instructions h3 {
+            font-size: 1.3em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .instructions p {
+            line-height: 1.6;
+            font-size: 1em;
+        }
+
+        .game-container {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        /* Banco de Elementos */
+        .elements-bank {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(204, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .elements-bank h3 {
+            color: #ff6b6b;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .draggable-elements {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 700px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .draggable-elements::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .draggable-elements::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .draggable-elements::-webkit-scrollbar-thumb {
+            background: #c00;
+            border-radius: 10px;
+        }
+
+        .draggable-item {
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+            border: 2px solid #c00;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            text-align: center;
+            position: relative;
+        }
+
+        .draggable-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(204, 0, 0, 0.4);
+            border-color: #ff6b6b;
+        }
+
+        .draggable-item:active {
+            cursor: grabbing;
+        }
+
+        .draggable-item.dragging {
+            opacity: 0.5;
+        }
+
+        /* Diagrama Jerárquico */
+        .hierarchy-diagram {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(204, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 30px;
+            min-height: 700px;
+        }
+
+        /* Nivel 1 - Documento Principal */
+        .level-1-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+
+        .diagram-box {
+            background: rgba(26, 26, 26, 0.8);
+            border: 3px solid #c00;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .diagram-box.drag-over {
+            background: rgba(204, 0, 0, 0.2);
+            border-color: #ff6b6b;
+            box-shadow: inset 0 0 20px rgba(204, 0, 0, 0.3);
+        }
+
+        .diagram-box.empty::before {
+            content: attr(data-placeholder);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.9em;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .level-1-box {
+            width: 400px;
+        }
+
+        .level-label {
+            position: absolute;
+            top: -12px;
+            left: 15px;
+            background: #c00;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Conector Vertical */
+        .connector-vertical {
+            width: 3px;
+            height: 30px;
+            background: #c00;
+            margin: 0 auto;
+        }
+
+        /* Nivel 2 - Secciones Principales */
+        .level-2-container {
+            margin-bottom: 40px;
+        }
+
+        .level-2-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .level-2-box {
+            width: 100%;
+            min-height: 70px;
+        }
+
+        /* Conector hacia abajo */
+        .connector-down {
+            display: flex;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .connector-line {
+            width: 3px;
+            height: 25px;
+            background: #c00;
+        }
+
+        /* Nivel 3 - Subsecciones */
+        .level-3-container {
+            margin-bottom: 40px;
+        }
+
+        .level-3-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .level-3-box {
+            width: 100%;
+            min-height: 70px;
+        }
+
+        /* Nivel 4 - Elementos de Contenido */
+        .level-4-container {
+            margin-bottom: 20px;
+        }
+
+        .level-4-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .level-4-box {
+            width: 100%;
+            min-height: 70px;
+        }
+
+        /* Elemento colocado */
+        .placed-item {
+            color: white;
+            font-size: 0.95em;
+            font-weight: 500;
+            text-align: center;
+            animation: placeItem 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        @keyframes placeItem {
+            0% {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .placed-item .remove-btn {
+            background: rgba(204, 0, 0, 0.8);
+            border: none;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .placed-item .remove-btn:hover {
+            background: #ff0000;
+            transform: scale(1.1);
+        }
+
+        /* Títulos de sección */
+        .section-title {
+            color: #ff6b6b;
+            font-size: 1.2em;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Botones de Acción */
+        .actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 18px 40px;
+            font-size: 1.1em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(40, 167, 69, 0.5);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #c00 0%, #ff0000 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(204, 0, 0, 0.5);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .loading.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid rgba(204, 0, 0, 0.2);
+            border-top-color: #c00;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: white;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .game-container {
+                grid-template-columns: 250px 1fr;
+            }
+
+            .level-1-box {
+                width: 350px;
+            }
+        }
+
+        @media (max-width: 968px) {
+            .game-container {
+                grid-template-columns: 1fr;
+            }
+
+            .elements-bank {
+                position: static;
+                margin-bottom: 20px;
+            }
+
+            .level-2-grid,
+            .level-3-grid,
+            .level-4-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .level-1-box {
+                width: 100%;
+                max-width: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .btn {
+                padding: 15px 30px;
+                font-size: 1em;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .hierarchy-diagram {
+                padding: 20px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .completion-status {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(204, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .completion-status .progress {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #c00;
+            margin-bottom: 5px;
+        }
+
+        .completion-status .message {
+            font-size: 0.9em;
+            color: #ff6b6b;
+        }
+
+        /* Cuadros validados */
+        .diagram-box.correct-box {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.15);
+            animation: pulseGreen 0.6s ease;
+        }
+
+        .diagram-box.incorrect-box {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.15);
+            animation: pulseRed 0.6s ease;
+        }
+
+        @keyframes pulseGreen {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes pulseRed {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+        }
+
+        /* Cuadro de Resultados */
+        .result-box {
+            display: none;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border: 3px solid #c00;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-box h2 {
+            color: #ff6b6b;
+            font-size: 2em;
+            text-align: center;
+            margin-bottom: 25px;
+            font-family: 'Bebas Neue', cursive;
+            letter-spacing: 3px;
+        }
+
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 2px solid rgba(204, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(204, 0, 0, 0.3);
+        }
+
+        .stat-card.score-card {
+            border-color: #c00;
+            background: rgba(204, 0, 0, 0.1);
+        }
+
+        .stat-card.correct-card {
+            border-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+
+        .stat-card.incorrect-card {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+
+        .stat-label {
+            color: #ff6b6b;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            color: white;
+            font-size: 2.5em;
+            font-weight: 700;
+            font-family: 'Bebas Neue', cursive;
+        }
+
+        .score-card .stat-value {
+            color: #c00;
+        }
+
+        .correct-card .stat-value {
+            color: #28a745;
+        }
+
+        .incorrect-card .stat-value {
+            color: #dc3545;
+        }
+
+        .stat-subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .feedback-box {
+            background: rgba(204, 0, 0, 0.1);
+            border: 2px solid #c00;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .feedback-box p {
+            color: white;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 0.95em;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            border-radius: 5px;
+            border: 2px solid;
+        }
+
+        .legend-color.correct {
+            background: rgba(40, 167, 69, 0.3);
+            border-color: #28a745;
+        }
+
+        .legend-color.incorrect {
+            background: rgba(220, 53, 69, 0.3);
+            border-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Diagrama Jerárquico</h1>
+            <p class="subtitle">Del Reporte Empresarial</p>
+        </div>
+
+        <!-- Información del Estudiante -->
+        <div class="student-info">
+            <h3>Información del Estudiante</h3>
+            <div class="info-grid">
+                <div class="info-field">
+                    <label for="studentName">Nombre Completo *</label>
+                    <input type="text" id="studentName" placeholder="Tu nombre completo" required>
+                </div>
+                <div class="info-field">
+                    <label for="studentCourse">Curso / Sección *</label>
+                    <input type="text" id="studentCourse" placeholder="Ej: 3ro B" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instrucciones -->
+        <div class="instructions">
+            <h3>📋 Instrucciones</h3>
+            <p>
+                <strong>Completa el diagrama jerárquico</strong> arrastrando los elementos desde el banco hacia los cuadros correspondientes. 
+                Debes colocar: <strong>1 nombre de reporte completo</strong>, <strong>9 secciones principales</strong>, 
+                <strong>3 subsecciones</strong> y <strong>3 elementos de contenido</strong>. Una vez completado, descarga tu PDF y envíalo.
+            </p>
+        </div>
+
+        <!-- Estado de Completitud -->
+        <div class="completion-status">
+            <div class="progress" id="progressText">0/16 elementos colocados</div>
+            <div class="message" id="progressMessage">Arrastra los elementos para completar el diagrama</div>
+        </div>
+
+        <!-- Contenedor del Juego -->
+        <div class="game-container">
+            <!-- Banco de Elementos -->
+            <div class="elements-bank">
+                <h3>🎯 Elementos</h3>
+                <div class="draggable-elements" id="elementsBank">
+                    <!-- El elemento del reporte -->
+                    <div class="draggable-item" draggable="true" data-type="reporte">
+                        Reporte Anual de RRHH
+                    </div>
+
+                    <!-- Las 9 Secciones -->
+                    <div class="draggable-item" draggable="true" data-type="seccion">
+                        Portada
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="seccion">
+                        Índice
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="seccion">
+                        Resumen Ejecutivo
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="seccion">
+                        Introducción
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="seccion">
+                        Cuerpo del Reporte
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="seccion">
+                        Conclusiones
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="seccion">
+                        Recomendaciones
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="seccion">
+                        Anexos
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="seccion">
+                        Referencias
+                    </div>
+
+                    <!-- 3 Subsecciones -->
+                    <div class="draggable-item" draggable="true" data-type="subseccion">
+                        Análisis de la Plantilla
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="subseccion">
+                        Reclutamiento y Selección
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="subseccion">
+                        Capacitación y Desarrollo
+                    </div>
+
+                    <!-- 3 Elementos de Contenido -->
+                    <div class="draggable-item" draggable="true" data-type="elemento">
+                        Tabla de Distribución
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="elemento">
+                        Inversión Total (RD$)
+                    </div>
+                    <div class="draggable-item" draggable="true" data-type="elemento">
+                        Gráficos de Barras
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diagrama Jerárquico -->
+            <div class="hierarchy-diagram" id="diagramArea">
+                <!-- Nivel 1: Documento Completo -->
+                <div class="level-1-container">
+                    <div class="diagram-box level-1-box empty" data-level="1" data-placeholder="Arrastra el nombre del reporte aquí">
+                        <span class="level-label">Nivel 1</span>
+                    </div>
+                </div>
+
+                <div class="connector-vertical"></div>
+
+                <!-- Nivel 2: Secciones Principales -->
+                <div class="level-2-container">
+                    <div class="section-title">Secciones Principales (9)</div>
+                    <div class="level-2-grid">
+                        <div class="diagram-box level-2-box empty" data-level="2" data-placeholder="Sección 1">
+                            <span class="level-label">Nivel 2</span>
+                        </div>
+                        <div class="diagram-box level-2-box empty" data-level="2" data-placeholder="Sección 2">
+                            <span class="level-label">Nivel 2</span>
+                        </div>
+                        <div class="diagram-box level-2-box empty" data-level="2" data-placeholder="Sección 3">
+                            <span class="level-label">Nivel 2</span>
+                        </div>
+                        <div class="diagram-box level-2-box empty" data-level="2" data-placeholder="Sección 4">
+                            <span class="level-label">Nivel 2</span>
+                        </div>
+                        <div class="diagram-box level-2-box empty" data-level="2" data-placeholder="Sección 5">
+                            <span class="level-label">Nivel 2</span>
+                        </div>
+                        <div class="diagram-box level-2-box empty" data-level="2" data-placeholder="Sección 6">
+                            <span class="level-label">Nivel 2</span>
+                        </div>
+                        <div class="diagram-box level-2-box empty" data-level="2" data-placeholder="Sección 7">
+                            <span class="level-label">Nivel 2</span>
+                        </div>
+                        <div class="diagram-box level-2-box empty" data-level="2" data-placeholder="Sección 8">
+                            <span class="level-label">Nivel 2</span>
+                        </div>
+                        <div class="diagram-box level-2-box empty" data-level="2" data-placeholder="Sección 9">
+                            <span class="level-label">Nivel 2</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="connector-vertical"></div>
+
+                <!-- Nivel 3: Subsecciones -->
+                <div class="level-3-container">
+                    <div class="section-title">Subsecciones (3)</div>
+                    <div class="level-3-grid">
+                        <div class="diagram-box level-3-box empty" data-level="3" data-placeholder="Subsección 1">
+                            <span class="level-label">Nivel 3</span>
+                        </div>
+                        <div class="diagram-box level-3-box empty" data-level="3" data-placeholder="Subsección 2">
+                            <span class="level-label">Nivel 3</span>
+                        </div>
+                        <div class="diagram-box level-3-box empty" data-level="3" data-placeholder="Subsección 3">
+                            <span class="level-label">Nivel 3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="connector-vertical"></div>
+
+                <!-- Nivel 4: Elementos de Contenido -->
+                <div class="level-4-container">
+                    <div class="section-title">Elementos de Contenido (3)</div>
+                    <div class="level-4-grid">
+                        <div class="diagram-box level-4-box empty" data-level="4" data-placeholder="Elemento 1">
+                            <span class="level-label">Nivel 4</span>
+                        </div>
+                        <div class="diagram-box level-4-box empty" data-level="4" data-placeholder="Elemento 2">
+                            <span class="level-label">Nivel 4</span>
+                        </div>
+                        <div class="diagram-box level-4-box empty" data-level="4" data-placeholder="Elemento 3">
+                            <span class="level-label">Nivel 4</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cuadro de Resultados -->
+        <div class="result-box" id="resultBox">
+            <h2>📊 Resultados de tu Actividad</h2>
+            
+            <div class="result-stats">
+                <div class="stat-card score-card">
+                    <div class="stat-label">Puntuación</div>
+                    <div class="stat-value"><span id="scoreValue">0.00</span> / 2.0</div>
+                    <div class="stat-subtitle">puntos</div>
+                </div>
+
+                <div class="stat-card correct-card">
+                    <div class="stat-label">Correctas</div>
+                    <div class="stat-value" id="correctValue">0</div>
+                    <div class="stat-subtitle">elementos</div>
+                </div>
+
+                <div class="stat-card incorrect-card">
+                    <div class="stat-label">Incorrectas</div>
+                    <div class="stat-value" id="incorrectValue">0</div>
+                    <div class="stat-subtitle">elementos</div>
+                </div>
+            </div>
+
+            <div class="feedback-box">
+                <p id="feedbackMessage">Revisa tu diagrama</p>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color correct"></div>
+                    <span>Respuesta Correcta</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color incorrect"></div>
+                    <span>Respuesta Incorrecta</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="actions">
+            <button class="btn btn-success" onclick="generatePDF()" id="pdfBtn">
+                <span>📄 Descargar PDF</span>
+            </button>
+            <button class="btn btn-primary" onclick="submitActivity()" id="submitBtn">
+                <span>📤 Enviar Actividad</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Generando PDF...</div>
+    </div>
+
+    <script>
+        let draggedElement = null;
+        let placedCount = 0;
+        const totalElements = 16; // 1 + 9 + 3 + 3
+        const totalPoints = 2;
+
+        // Respuestas correctas - cualquier elemento es válido en su nivel correspondiente
+        const correctLevels = {
+            'Reporte Anual de RRHH': '1',
+            'Portada': '2',
+            'Índice': '2',
+            'Resumen Ejecutivo': '2',
+            'Introducción': '2',
+            'Cuerpo del Reporte': '2',
+            'Conclusiones': '2',
+            'Recomendaciones': '2',
+            'Anexos': '2',
+            'Referencias': '2',
+            'Análisis de la Plantilla': '3',
+            'Reclutamiento y Selección': '3',
+            'Capacitación y Desarrollo': '3',
+            'Tabla de Distribución': '4',
+            'Inversión Total (RD$)': '4',
+            'Gráficos de Barras': '4'
+        };
+
+        // Función para desordenar array (Fisher-Yates shuffle)
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            shuffleElements();
+            initDragAndDrop();
+            updateProgress();
+        });
+
+        function shuffleElements() {
+            const elementsBank = document.getElementById('elementsBank');
+            const elements = Array.from(elementsBank.querySelectorAll('.draggable-item'));
+            
+            // Desordenar los elementos
+            const shuffled = shuffleArray(elements);
+            
+            // Limpiar el banco
+            elementsBank.innerHTML = '';
+            
+            // Agregar elementos desordenados
+            shuffled.forEach(element => {
+                elementsBank.appendChild(element);
+            });
+        }
+
+        function initDragAndDrop() {
+            // Drag start
+            document.querySelectorAll('.draggable-item').forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+
+            // Drop zones
+            document.querySelectorAll('.diagram-box').forEach(box => {
+                box.addEventListener('dragover', handleDragOver);
+                box.addEventListener('drop', handleDrop);
+                box.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            
+            // Solo permitir drop si el cuadro está vacío
+            if (this.classList.contains('empty')) {
+                this.classList.add('drag-over');
+            }
+            
+            return false;
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            this.classList.remove('drag-over');
+
+            // Solo permitir drop si está vacío
+            if (!this.classList.contains('empty') || !draggedElement) {
+                return false;
+            }
+
+            const text = draggedElement.textContent.trim();
+            
+            // Crear elemento colocado
+            const placedItem = document.createElement('div');
+            placedItem.className = 'placed-item';
+            placedItem.dataset.elementText = text;
+            placedItem.innerHTML = `
+                <span>${text}</span>
+                <button class="remove-btn" onclick="removeItem(this, event)">×</button>
+            `;
+            
+            this.innerHTML = '';
+            this.appendChild(placedItem);
+            this.classList.remove('empty');
+            
+            // Mantener el label
+            const label = document.createElement('span');
+            label.className = 'level-label';
+            label.textContent = this.querySelector('.level-label') ? 
+                this.querySelector('.level-label').textContent : 
+                `Nivel ${this.dataset.level}`;
+            this.insertBefore(label, this.firstChild);
+            
+            // Remover del banco
+            draggedElement.remove();
+            
+            placedCount++;
+            updateProgress();
+
+            return false;
+        }
+
+        function removeItem(btn, event) {
+            event.stopPropagation();
+            
+            const placedItem = btn.parentElement;
+            const text = placedItem.querySelector('span').textContent;
+            const box = placedItem.parentElement;
+            
+            // Remover clases de validación si existen
+            box.classList.remove('correct-box', 'incorrect-box');
+            
+            // Devolver al banco
+            const newItem = document.createElement('div');
+            newItem.className = 'draggable-item';
+            newItem.draggable = true;
+            newItem.textContent = text;
+            
+            // Determinar el tipo basado en el texto
+            if (text.includes('Reporte')) {
+                newItem.dataset.type = 'reporte';
+            } else if (['Portada', 'Índice', 'Resumen Ejecutivo', 'Introducción', 'Cuerpo del Reporte', 'Conclusiones', 'Recomendaciones', 'Anexos', 'Referencias'].includes(text)) {
+                newItem.dataset.type = 'seccion';
+            } else if (['Análisis de la Plantilla', 'Reclutamiento y Selección', 'Capacitación y Desarrollo'].includes(text)) {
+                newItem.dataset.type = 'subseccion';
+            } else {
+                newItem.dataset.type = 'elemento';
+            }
+            
+            newItem.addEventListener('dragstart', handleDragStart);
+            newItem.addEventListener('dragend', handleDragEnd);
+            
+            document.getElementById('elementsBank').appendChild(newItem);
+            
+            // Limpiar el cuadro
+            box.innerHTML = `<span class="level-label">Nivel ${box.dataset.level}</span>`;
+            box.classList.add('empty');
+            
+            placedCount--;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const progressText = document.getElementById('progressText');
+            const progressMessage = document.getElementById('progressMessage');
+            
+            progressText.textContent = `${placedCount}/${totalElements} elementos colocados`;
+            
+            if (placedCount === 0) {
+                progressMessage.textContent = 'Arrastra los elementos para completar el diagrama';
+            } else if (placedCount < totalElements) {
+                progressMessage.textContent = `¡Vas bien! Faltan ${totalElements - placedCount} elementos`;
+            } else {
+                progressMessage.textContent = '✓ ¡Diagrama completo! Ya puedes enviar tu actividad';
+            }
+        }
+
+        async function generatePDF() {
+            // Validar información del estudiante
+            const studentName = document.getElementById('studentName').value.trim();
+            const studentCourse = document.getElementById('studentCourse').value.trim();
+
+            if (!studentName || !studentCourse) {
+                alert('⚠️ Por favor completa tu nombre y curso antes de descargar el PDF.');
+                return;
+            }
+
+            if (placedCount < totalElements) {
+                if (!confirm(`Has colocado ${placedCount} de ${totalElements} elementos. ¿Deseas continuar con el PDF incompleto?`)) {
+                    return;
+                }
+            }
+
+            const loading = document.getElementById('loading');
+            loading.classList.add('show');
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                let yPos = 20;
+
+                // Encabezado
+                pdf.setFillColor(204, 0, 0);
+                pdf.rect(0, 0, pageWidth, 40, 'F');
+                
+                pdf.setTextColor(255, 255, 255);
+                pdf.setFontSize(22);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Diagrama Jerárquico del Reporte Empresarial', pageWidth / 2, 15, { align: 'center' });
+                
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text('Actividad: Estructura de Documentos Empresariales', pageWidth / 2, 28, { align: 'center' });
+
+                yPos = 50;
+
+                // Información del estudiante
+                pdf.setTextColor(0, 0, 0);
+                pdf.setFontSize(13);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Información del Estudiante', 15, yPos);
+                
+                yPos += 8;
+                pdf.setFontSize(10);
+                pdf.setFont('helvetica', 'normal');
+                pdf.text(`Nombre: ${studentName}`, 15, yPos);
+                yPos += 6;
+                pdf.text(`Curso: ${studentCourse}`, 15, yPos);
+                yPos += 6;
+                pdf.text(`Fecha: ${new Date().toLocaleDateString('es-DO', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                })}`, 15, yPos);
+
+                yPos += 15;
+
+                // Título del diagrama
+                pdf.setFontSize(13);
+                pdf.setFont('helvetica', 'bold');
+                pdf.text('Diagrama Jerárquico Completado', 15, yPos);
+                yPos += 10;
+
+                // Función para dibujar cuadro
+                function drawBox(text, x, y, width, height, level, isCorrect = null) {
+                    // Si el texto es [Vacío], no mostrar nada
+                    if (text === '[Vacío]') {
+                        // Dibujar solo el borde del cuadro vacío
+                        pdf.setDrawColor(200, 200, 200);
+                        pdf.setLineWidth(0.3);
+                        pdf.rect(x, y, width, height);
+                        
+                        // Label del nivel
+                        pdf.setFillColor(200, 200, 200);
+                        pdf.roundedRect(x + 2, y - 3, 15, 6, 3, 3, 'F');
+                        pdf.setTextColor(255, 255, 255);
+                        pdf.setFontSize(7);
+                        pdf.setFont('helvetica', 'bold');
+                        pdf.text(`N${level}`, x + 9.5, y + 0.5, { align: 'center' });
+                        return;
+                    }
+                    
+                    // Color del cuadro según corrección
+                    if (isCorrect === true) {
+                        pdf.setDrawColor(40, 167, 69); // Verde
+                        pdf.setLineWidth(0.8);
+                        pdf.setFillColor(212, 237, 218); // Verde claro
+                        pdf.rect(x, y, width, height, 'FD');
+                    } else if (isCorrect === false) {
+                        pdf.setDrawColor(220, 53, 69); // Rojo
+                        pdf.setLineWidth(0.8);
+                        pdf.setFillColor(248, 215, 218); // Rojo claro
+                        pdf.rect(x, y, width, height, 'FD');
+                    } else {
+                        pdf.setDrawColor(204, 0, 0);
+                        pdf.setLineWidth(0.5);
+                        pdf.rect(x, y, width, height);
+                    }
+                    
+                    // Label del nivel
+                    pdf.setFillColor(204, 0, 0);
+                    pdf.roundedRect(x + 2, y - 3, 15, 6, 3, 3, 'F');
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFontSize(7);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text(`N${level}`, x + 9.5, y + 0.5, { align: 'center' });
+                    
+                    // Texto del elemento
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFontSize(9);
+                    pdf.setFont('helvetica', 'normal');
+                    
+                    // Centrar texto en el cuadro
+                    const lines = pdf.splitTextToSize(text, width - 6);
+                    const textHeight = lines.length * 4;
+                    const textY = y + (height / 2) - (textHeight / 2) + 4;
+                    
+                    pdf.text(lines, x + width / 2, textY, { align: 'center' });
+                    
+                    // Agregar ícono de correcto/incorrecto si está validado
+                    if (isCorrect === true) {
+                        pdf.setTextColor(40, 167, 69);
+                        pdf.setFontSize(12);
+                        pdf.text('✓', x + width - 5, y + 5);
+                    } else if (isCorrect === false) {
+                        pdf.setTextColor(220, 53, 69);
+                        pdf.setFontSize(12);
+                        pdf.text('✗', x + width - 5, y + 5);
+                    }
+                }
+
+                // Nivel 1
+                const level1Box = document.querySelector('.level-1-box');
+                const level1PlacedItem = level1Box.querySelector('.placed-item');
+                const level1Text = level1PlacedItem ? level1PlacedItem.querySelector('span').textContent.trim() : '[Vacío]';
+                const level1IsCorrect = level1Box.classList.contains('correct-box') ? true : 
+                                       (level1Box.classList.contains('incorrect-box') ? false : null);
+                
+                const boxWidth = 80;
+                const boxHeight = 20;
+                const centerX = (pageWidth - boxWidth) / 2;
+                
+                drawBox(level1Text, centerX, yPos, boxWidth, boxHeight, 1, level1IsCorrect);
+                yPos += boxHeight + 8;
+
+                // Conector
+                pdf.setDrawColor(204, 0, 0);
+                pdf.setLineWidth(0.5);
+                pdf.line(pageWidth / 2, yPos - 8, pageWidth / 2, yPos);
+                yPos += 3;
+
+                // Nivel 2 - Secciones (3x3 grid)
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(204, 0, 0);
+                pdf.text('Secciones Principales', 15, yPos);
+                yPos += 8;
+
+                const level2Boxes = document.querySelectorAll('.level-2-box');
+                const smallBoxWidth = 55;
+                const smallBoxHeight = 18;
+                const gap = 8;
+                const startX = 15;
+                
+                level2Boxes.forEach((box, index) => {
+                    const placedItem = box.querySelector('.placed-item');
+                    const text = placedItem ? placedItem.querySelector('span').textContent.trim() : '[Vacío]';
+                    const isCorrect = box.classList.contains('correct-box') ? true : 
+                                    (box.classList.contains('incorrect-box') ? false : null);
+                    const row = Math.floor(index / 3);
+                    const col = index % 3;
+                    const x = startX + col * (smallBoxWidth + gap);
+                    const y = yPos + row * (smallBoxHeight + gap);
+                    
+                    drawBox(text, x, y, smallBoxWidth, smallBoxHeight, 2, isCorrect);
+                });
+
+                yPos += (smallBoxHeight + gap) * 3 + 5;
+
+                // Conector
+                pdf.line(pageWidth / 2, yPos - 5, pageWidth / 2, yPos);
+                yPos += 3;
+
+                // Nivel 3 - Subsecciones
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(204, 0, 0);
+                pdf.text('Subsecciones', 15, yPos);
+                yPos += 8;
+
+                const level3Boxes = document.querySelectorAll('.level-3-box');
+                level3Boxes.forEach((box, index) => {
+                    const placedItem = box.querySelector('.placed-item');
+                    const text = placedItem ? placedItem.querySelector('span').textContent.trim() : '[Vacío]';
+                    const isCorrect = box.classList.contains('correct-box') ? true : 
+                                    (box.classList.contains('incorrect-box') ? false : null);
+                    const x = startX + index * (smallBoxWidth + gap);
+                    drawBox(text, x, yPos, smallBoxWidth, smallBoxHeight, 3, isCorrect);
+                });
+
+                yPos += smallBoxHeight + 10;
+
+                // Conector
+                pdf.line(pageWidth / 2, yPos - 10, pageWidth / 2, yPos - 5);
+
+                // Nivel 4 - Elementos
+                pdf.setFontSize(11);
+                pdf.setFont('helvetica', 'bold');
+                pdf.setTextColor(204, 0, 0);
+                pdf.text('Elementos de Contenido', 15, yPos);
+                yPos += 8;
+
+                const level4Boxes = document.querySelectorAll('.level-4-box');
+                level4Boxes.forEach((box, index) => {
+                    const placedItem = box.querySelector('.placed-item');
+                    const text = placedItem ? placedItem.querySelector('span').textContent.trim() : '[Vacío]';
+                    const isCorrect = box.classList.contains('correct-box') ? true : 
+                                    (box.classList.contains('incorrect-box') ? false : null);
+                    const x = startX + index * (smallBoxWidth + gap);
+                    drawBox(text, x, yPos, smallBoxWidth, smallBoxHeight, 4, isCorrect);
+                });
+
+                yPos += smallBoxHeight + 15;
+
+                // Agregar puntuación si fue validado
+                const resultBox = document.getElementById('resultBox');
+                if (resultBox && resultBox.style.display !== 'none') {
+                    const score = parseFloat(document.getElementById('scoreValue').textContent);
+                    const correct = parseInt(document.getElementById('correctValue').textContent);
+                    const incorrect = parseInt(document.getElementById('incorrectValue').textContent);
+                    
+                    // Verificar si necesitamos nueva página
+                    if (yPos + 40 > pageHeight - 20) {
+                        pdf.addPage();
+                        yPos = 20;
+                    }
+                    
+                    // Cuadro de puntuación
+                    pdf.setFillColor(40, 167, 69);
+                    pdf.roundedRect(15, yPos, pageWidth - 30, 28, 5, 5, 'F');
+                    
+                    // Título
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFontSize(12);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('CALIFICACIÓN', pageWidth / 2, yPos + 9, { align: 'center' });
+                    
+                    // Puntuación
+                    pdf.setFontSize(18);
+                    pdf.text(`${score.toFixed(2)} / ${totalPoints} puntos`, pageWidth / 2, yPos + 20, { align: 'center' });
+                    
+                    yPos += 33;
+                    
+                    // Estadísticas
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text(`✓ Correctas: ${correct}    ✗ Incorrectas: ${incorrect}`, pageWidth / 2, yPos, { align: 'center' });
+                }
+
+                // Pie de página
+                pdf.setFontSize(8);
+                pdf.setTextColor(128, 128, 128);
+                pdf.text(
+                    'Centro Educativo Nuestra Sra. De la Altagracia | Desarrollo y Administración de Aplicaciones Informáticas',
+                    pageWidth / 2,
+                    pageHeight - 10,
+                    { align: 'center' }
+                );
+
+                // Guardar PDF
+                pdf.save(`Diagrama_Jerarquico_${studentName.replace(/\s+/g, '_')}.pdf`);
+
+            } catch (error) {
+                console.error('Error generando PDF:', error);
+                alert('Hubo un error al generar el PDF. Por favor intenta nuevamente.');
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        async function submitActivity() {
+            const studentName = document.getElementById('studentName').value.trim();
+            const studentCourse = document.getElementById('studentCourse').value.trim();
+
+            if (!studentName || !studentCourse) {
+                alert('⚠️ Por favor completa tu nombre y curso antes de enviar.');
+                return;
+            }
+
+            if (placedCount < totalElements) {
+                alert(`⚠️ Tu diagrama está incompleto. Has colocado ${placedCount} de ${totalElements} elementos. Complétalo antes de enviar.`);
+                return;
+            }
+
+            // Validar respuestas
+            let correctCount = 0;
+            let incorrectCount = 0;
+
+            document.querySelectorAll('.diagram-box').forEach(box => {
+                const placedItem = box.querySelector('.placed-item');
+                
+                if (placedItem) {
+                    const elementText = placedItem.dataset.elementText;
+                    const correctLevel = correctLevels[elementText];
+                    const currentLevel = box.dataset.level;
+                    
+                    if (correctLevel === currentLevel) {
+                        box.classList.add('correct-box');
+                        box.classList.remove('incorrect-box');
+                        correctCount++;
+                    } else {
+                        box.classList.add('incorrect-box');
+                        box.classList.remove('correct-box');
+                        incorrectCount++;
+                    }
+                }
+            });
+
+            // Calcular puntuación
+            const score = (correctCount / totalElements) * totalPoints;
+
+            // Mostrar resultados
+            showResults(correctCount, incorrectCount, score);
+
+            // Guardar en localStorage
+            const activityData = {
+                student: {
+                    name: studentName,
+                    course: studentCourse
+                },
+                timestamp: new Date().toISOString(),
+                score: score,
+                correctCount: correctCount,
+                incorrectCount: incorrectCount,
+                totalElements: totalElements
+            };
+
+            const submissions = JSON.parse(localStorage.getItem('submissions') || '[]');
+            submissions.push(activityData);
+            localStorage.setItem('submissions', JSON.stringify(submissions));
+
+            console.log('Datos de la actividad:', activityData);
+        }
+
+        function showResults(correct, incorrect, score) {
+            const resultBox = document.getElementById('resultBox');
+            const scoreValue = document.getElementById('scoreValue');
+            const correctValue = document.getElementById('correctValue');
+            const incorrectValue = document.getElementById('incorrectValue');
+            const feedback = document.getElementById('feedbackMessage');
+
+            scoreValue.textContent = score.toFixed(2);
+            correctValue.textContent = correct;
+            incorrectValue.textContent = incorrect;
+
+            // Mensaje de feedback
+            let message = '';
+            let emoji = '';
+            
+            if (score === totalPoints) {
+                emoji = '🎉';
+                message = '¡Excelente trabajo! Has completado el diagrama perfectamente.';
+            } else if (score >= totalPoints * 0.75) {
+                emoji = '👍';
+                message = '¡Muy bien! Solo algunos elementos necesitan corrección.';
+            } else if (score >= totalPoints * 0.5) {
+                emoji = '📚';
+                message = 'Buen intento. Revisa las secciones en rojo y vuelve a intentarlo.';
+            } else {
+                emoji = '💪';
+                message = 'Sigue practicando. Repasa la jerarquía del reporte empresarial.';
+            }
+
+            feedback.innerHTML = `${emoji} ${message}`;
+
+            resultBox.style.display = 'block';
+
+            // Scroll hacia resultados
+            resultBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        // Prevenir salida accidental
+        window.addEventListener('beforeunload', function(e) {
+            if (placedCount > 0 && placedCount < totalElements) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>
